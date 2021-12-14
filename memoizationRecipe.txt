@@ -1,0 +1,13 @@
+Try to visualize recursive solutions in terms of a tree,
+whats great about a tree is its already recursive.
+    1. Make it work
+        1.1 Visualize the problem as a tree
+        1.2 Implement the tree using a recursion
+        1.3 Test it
+        - Have a solution even if its slow. 
+        - There is a big difference in a code that is slow
+          and a code that is wrong.  
+    2. Make it efficient 
+        2.1 Add a memo object
+        2.2 Add a base case to return memo values
+        2.3 Store returned values into the memo
