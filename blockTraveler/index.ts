@@ -27,7 +27,17 @@ const mazeGrid: number[][] = [
   [0, 0, 0],
   [0, 1, 0],
 ];
+
 console.log(mazeGrid);
+
+const mazeGrid2: number[][] = [
+  [1,1,1],
+  [0,1,0],
+  [1,0,1]
+]
+
+console.log(mazeGrid2);
+
 // console.log(`# of ways for 2x3 grid ${mazeTraveler(2, 3)}`);
 
 /**
