@@ -1,21 +1,98 @@
-const predefinedDatasets: ChartDataset[] = [
-    {
-      name: 'First',
-      data: Array.from({ length: 50 }, (_, i) => ({
-        x: (i + 1) * 2,
-        y: Math.floor(Math.random() * 11)
-      })),
-      color: '#5470c6' // Optional - can specify custom colors
-    },
-    {
-      name: 'Second',
-      data: Array.from({ length: 50 }, (_, i) => ({
-        x: (i + 1) * 2,
-        y: Math.floor(Math.random() * 11)
-      })),
-      color: '#91cc75'
+// TypeScript interface for chart options
+export interface ChartOptions {
+  xAxis?: {
+    min?: number;
+    max?: number;
+    interval?: number;
+    name?: string;
+  };
+  yAxis?: {
+    min?: number;
+    max?: number;
+    interval?: number;
+    name?: string;
+  };
+  legend?: {
+    top?: number;
+    icon?: string;
+    itemWidth?: number;
+    itemHeight?: number;
+  };
+  tooltip?: {
+    trigger?: string;
+    axisPointer?: {
+      type?: string;
+    };
+  };
+  series?: {
+    smooth?: number;
+    lineWidth?: number;
+    pointBorderWidth?: number;
+    pointBorderColor?: string;
+  };
+  dataZoom?: {
+    enabled?: boolean;
+    type?: 'slider' | 'inside';
+    xAxisIndex?: number;
+    yAxisIndex?: number;
+    start?: number;
+    end?: number;
+  };
+}
+
+// Default options
+export const defaultChartOptions: ChartOptions = {
+  xAxis: {
+    min: 2,
+    max: 100,
+    interval: 2,
+    name: 'Time of the monitor run'
+  },
+  yAxis: {
+    min: 0,
+    max: 10,
+    interval: 1,
+    name: 'Resource usage in %'
+  },
+  legend: {
+    top: 20,
+    icon: 'rect',
+    itemWidth: 12,
+    itemHeight: 8
+  },
+  tooltip: {
+    trigger: 'axis',
+    axisPointer: {
+      type: 'cross'
     }
-  ];
+  },
+  series: {
+    smooth: 0.3,
+    lineWidth: 3,
+    pointBorderWidth: 2,
+    pointBorderColor: '#fff'
+  },
+  dataZoom: {
+    enabled: true,
+    type: 'slider',
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    start: 0,
+    end: 100
+  }
+};
+
+// Interface for chart data
+export interface ChartDataPoint {
+  x: number;
+  y: number;
+}
+
+export interface ChartDataset {
+  name: string;
+  data: ChartDataPoint[];
+  color?: string; // Made optional
+}
 
 // Predefined color palette for dynamic datasets
 const colorPalette = [
@@ -33,6 +110,7 @@ export function generateColorsForDatasets(datasets: ChartDataset[]): ChartDatase
   }));
 }
 
+// Function to build complete chart options
 export function buildChartOptions(
   datasets: ChartDataset[], 
   options: ChartOptions = {}
@@ -65,6 +143,8 @@ export function buildChartOptions(
         color: '#333'
       },
       icon: mergedOptions.legend.icon,
+      itemWidth: mergedOptions.legend.itemWidth,
+      itemHeight: mergedOptions.legend.itemHeight,
       selected: datasetsWithColors.reduce((acc, dataset, index) => {
         acc[dataset.name] = index === 0; // First dataset is active by default
         return acc;
@@ -80,7 +160,7 @@ export function buildChartOptions(
       type: 'value',
       min: mergedOptions.xAxis.min,
       max: mergedOptions.xAxis.max,
-      interval: mergedOptions.xAxis.interval,
+      interval: 10, // Larger interval to prevent overlap
       name: mergedOptions.xAxis.name,
       nameLocation: 'middle',
       nameGap: 35,
@@ -90,11 +170,20 @@ export function buildChartOptions(
       },
       axisLine: {
         lineStyle: {
-          color: '#666'
+          color: '#333'
+        }
+      },
+      axisTick: {
+        lineStyle: {
+          color: '#333'
         }
       },
       axisLabel: {
-        formatter: (value: number) => Math.round(value).toString()
+        formatter: (value: number) => Math.round(value).toString(),
+        interval: 0,
+        showMaxLabel: true,
+        showMinLabel: true,
+        color: '#333'
       },
       splitLine: {
         show: false
@@ -114,11 +203,17 @@ export function buildChartOptions(
       },
       axisLine: {
         lineStyle: {
-          color: '#666'
+          color: '#333'
+        }
+      },
+      axisTick: {
+        lineStyle: {
+          color: '#333'
         }
       },
       axisLabel: {
-        formatter: (value: number) => Math.round(value).toString()
+        formatter: (value: number) => Math.round(value).toString(),
+        color: '#333'
       },
       splitLine: {
         show: false
