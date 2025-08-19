@@ -1,3 +1,22 @@
+const predefinedDatasets: ChartDataset[] = [
+    {
+      name: 'First',
+      data: Array.from({ length: 50 }, (_, i) => ({
+        x: (i + 1) * 2,
+        y: Math.floor(Math.random() * 11)
+      })),
+      color: '#5470c6' // Optional - can specify custom colors
+    },
+    {
+      name: 'Second',
+      data: Array.from({ length: 50 }, (_, i) => ({
+        x: (i + 1) * 2,
+        y: Math.floor(Math.random() * 11)
+      })),
+      color: '#91cc75'
+    }
+  ];
+
 // Predefined color palette for dynamic datasets
 const colorPalette = [
   '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
