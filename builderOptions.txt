@@ -1,0 +1,125 @@
+export function buildChartOptions(
+  datasets: ChartDataset[], 
+  options: ChartOptions = {}
+) {
+  // Generate colors for datasets that don't have them
+  const datasetsWithColors = generateColorsForDatasets(datasets);
+  
+  // Merge default options with provided options
+  const mergedOptions = {
+    xAxis: { ...defaultChartOptions.xAxis, ...options.xAxis },
+    yAxis: { ...defaultChartOptions.yAxis, ...options.yAxis },
+    legend: { ...defaultChartOptions.legend, ...options.legend },
+    tooltip: { 
+      ...defaultChartOptions.tooltip, 
+      ...options.tooltip,
+      axisPointer: { 
+        ...defaultChartOptions.tooltip?.axisPointer, 
+        ...options.tooltip?.axisPointer 
+      }
+    },
+    series: { ...defaultChartOptions.series, ...options.series },
+    dataZoom: { ...defaultChartOptions.dataZoom, ...options.dataZoom }
+  };
+
+  return {
+    legend: {
+      data: datasetsWithColors.map(dataset => dataset.name),
+      top: mergedOptions.legend.top,
+      textStyle: {
+        color: '#333'
+      },
+      icon: mergedOptions.legend.icon,
+      selected: datasetsWithColors.reduce((acc, dataset, index) => {
+        acc[dataset.name] = index === 0; // First dataset is active by default
+        return acc;
+      }, {} as Record<string, boolean>)
+    },
+    tooltip: {
+      trigger: mergedOptions.tooltip.trigger,
+      axisPointer: {
+        type: mergedOptions.tooltip.axisPointer?.type
+      }
+    },
+    xAxis: {
+      type: 'value',
+      min: mergedOptions.xAxis.min,
+      max: mergedOptions.xAxis.max,
+      interval: mergedOptions.xAxis.interval,
+      name: mergedOptions.xAxis.name,
+      nameLocation: 'middle',
+      nameGap: 35,
+      nameTextStyle: {
+        color: '#333',
+        fontSize: 14
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#666'
+        }
+      },
+      axisLabel: {
+        formatter: (value: number) => Math.round(value).toString()
+      },
+      splitLine: {
+        show: false
+      }
+    },
+    yAxis: {
+      type: 'value',
+      min: mergedOptions.yAxis.min,
+      max: mergedOptions.yAxis.max,
+      interval: mergedOptions.yAxis.interval,
+      name: mergedOptions.yAxis.name,
+      nameLocation: 'middle',
+      nameGap: 50,
+      nameTextStyle: {
+        color: '#333',
+        fontSize: 14
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#666'
+        }
+      },
+      axisLabel: {
+        formatter: (value: number) => Math.round(value).toString()
+      },
+      splitLine: {
+        show: false
+      }
+    },
+    dataZoom: mergedOptions.dataZoom.enabled ? [
+      // Mouse wheel zoom (inside)
+      {
+        type: 'inside',
+        xAxisIndex: mergedOptions.dataZoom.xAxisIndex,
+        yAxisIndex: mergedOptions.dataZoom.yAxisIndex,
+        start: mergedOptions.dataZoom.start,
+        end: mergedOptions.dataZoom.end,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+        moveOnMouseWheel: false,
+        preventDefaultMouseMove: true
+      }
+    ] : [],
+    series: datasetsWithColors.map(dataset => ({
+      name: dataset.name,
+      type: 'line' as const,
+      data: dataset.data.map(point => [point.x, point.y]),
+      smooth: mergedOptions.series.smooth,
+      lineStyle: {
+        color: dataset.color,
+        width: mergedOptions.series.lineWidth
+      },
+      itemStyle: {
+        color: dataset.color,
+        borderWidth: mergedOptions.series.pointBorderWidth,
+        borderColor: mergedOptions.series.pointBorderColor
+      },
+      areaStyle: {
+        color: 'transparent'
+      }
+    }))
+  };
+}
