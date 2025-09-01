@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>10 × 50 Grid with Highlight Header</title>
+  <style>
+    :root {
+      --rows: 10;
+      --cols: 50;
+      --cell-size: 2.2rem;
+      --gap: 2px;
+    }
+
+    body {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      margin: 16px;
+      color: #111;
+      background: #fafafa;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .scroller {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 8px;
+      overflow: auto;
+      background: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), var(--cell-size));
+      grid-auto-rows: var(--cell-size);
+      gap: var(--gap);
+      align-items: center;
+      justify-items: center;
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      line-height: var(--cell-size);
+      text-align: center;
+      border-radius: 4px;
+      transition: background 150ms ease;
+    }
+
+    .header {
+      background: #f3f4f6;
+      font-weight: bold;
+      transition: background 150ms ease;
+    }
+
+    .header.highlight {
+      background: #dbeafe; /* blue highlight */
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="regen" type="button">🔁 Regenerate</button>
+    <span>10 rows × 50 columns • header highlights on hover</span>
+  </div>
+
+  <div class="scroller">
+    <div id="grid" class="grid"></div>
+  </div>
+
+  <script>
+    const ROWS = 10;
+    const COLS = 50;
+    const grid = document.getElementById('grid');
+    const regen = document.getElementById('regen');
+
+    function random011() {
+      return Math.floor(Math.random() * 11); // 0–10 inclusive
+    }
+
+    function makeHeader() {
+      let index = 1;
+      for (let c = 1; c <= COLS; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell header';
+        cell.dataset.col = c; // tag with column index
+        const posInGroup = (c - 1) % 5;
+        if (posInGroup < 4) {
+          cell.textContent = "-";
+        } else {
+          cell.textContent = index++;
+        }
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      makeHeader();
+
+      for (let r = 2; r <= ROWS; r++) {
+        for (let c = 1; c <= COLS; c++) {
+          const n = random011();
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.textContent = n === 0 ? "·" : n;
+          cell.dataset.col = c; // tag with column index
+          cell.addEventListener("mouseenter", () => highlightHeader(c, true));
+          cell.addEventListener("mouseleave", () => highlightHeader(c, false));
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    function highlightHeader(col, on) {
+      const headers = grid.querySelectorAll(`.header[data-col="${col}"]`);
+      headers.forEach(h => {
+        h.classList.toggle("highlight", on);
+      });
+    }
+
+    regen.addEventListener('click', renderGrid);
+    renderGrid();
+  </script>
+</body>
+</html>
