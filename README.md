@@ -43,4 +43,39 @@ while ((match = regex.exec(text)) !== null) {
   const end = editor.document.positionAt(match.index + match[0].length);
   ranges.push(new vscode.Range(start, end));
 }
-editor.setDecorations(highlightDecoration, ranges);
+editor.setDecorations(highlightDecoration, 
+
+
+
+
+{
+  "main": "./out/extension.js",
+  "extensionDependencies": ["Zowe.vscode-extension-for-zowe"],
+  "activationEvents": [
+    "onView:zowe.explorer.jobs",
+    "onCommand:z-ecret.jobs.security-audit"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "z-ecret.jobs.security-audit",
+        "title": "Security Audit",
+        "category": "Zowe Explorer"
+      }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "z-ecret.jobs.security-audit",
+          "when": "view == zowe.explorer.jobs && viewItem == zowe.job",
+          "group": "navigation@99"
+        }
+      ]
+    }
+  }
+
+
+
+
+
+
