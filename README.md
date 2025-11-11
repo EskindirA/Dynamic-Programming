@@ -32,3 +32,15 @@ Contributions to this repository are welcome. If you have an implementation of a
 ## License
 
 This repository is licensed under the MIT License. See the `LICENSE` file for more information.
+
+
+const text = editor.document.getText();
+const regex = /TODO/g;
+const ranges: vscode.Range[] = [];
+let match;
+while ((match = regex.exec(text)) !== null) {
+  const start = editor.document.positionAt(match.index);
+  const end = editor.document.positionAt(match.index + match[0].length);
+  ranges.push(new vscode.Range(start, end));
+}
+editor.setDecorations(highlightDecoration, ranges);
