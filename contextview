@@ -1,0 +1,306 @@
+import * as vscode from 'vscode';
+
+export function activate(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand('creativeErrorView.show', async () => {
+    const editor = vscode.window.activeTextEditor;
+
+    // Try to use selected text as the stack trace
+    const prefillStack =
+      editor && !editor.selection.isEmpty
+        ? editor.document.getText(editor.selection)
+        : '';
+
+    const errTitle = await vscode.window.showInputBox({
+      prompt: 'Short title for the error (e.g., NullPointerException)',
+      value: 'Unhandled Exception'
+    });
+    if (errTitle === undefined) return;
+
+    const errMessage = await vscode.window.showInputBox({
+      prompt: 'Error message',
+      value: 'Something went wrong while processing your request.'
+    });
+    if (errMessage === undefined) return;
+
+    const stackTrace = await vscode.window.showInputBox({
+      prompt: 'Paste the stack trace (leave empty if none)',
+      value: prefillStack
+    });
+    if (stackTrace === undefined) return;
+
+    const panel = vscode.window.createWebviewPanel(
+      'creativeErrorView',
+      `Error: ${errTitle || 'Error'}`,
+      vscode.ViewColumn.Active,
+      { enableScripts: true, retainContextWhenHidden: true }
+    );
+
+    const theme = vscode.window.activeColorTheme.kind; // 1:light 2:dark 3:hc
+    panel.webview.html = getHtml(panel.webview, context, {
+      title: errTitle ?? '',
+      message: errMessage ?? '',
+      stack: stackTrace ?? '',
+      themeKind: theme
+    });
+
+    // Simple message channel for copy-to-clipboard confirmations
+    panel.webview.onDidReceiveMessage(msg => {
+      if (msg.type === 'copied') {
+        vscode.window.showInformationMessage('Copied to clipboard');
+      }
+    });
+  });
+
+  context.subscriptions.push(disposable);
+}
+
+export function deactivate() {}
+
+function getHtml(
+  webview: vscode.Webview,
+  _ctx: vscode.ExtensionContext,
+  data: { title: string; message: string; stack: string; themeKind: number }
+) {
+  const nonce = String(Math.random()).slice(2);
+  const isDark = data.themeKind !== 1; // treat HC and Dark similarly for contrast
+
+  // Basic sanitization for direct insertion
+  const esc = (s: string) =>
+    s
+      .replaceAll(/&/g, '&amp;')
+      .replaceAll(/</g, '&lt;')
+      .replaceAll(/>/g, '&gt;');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy"
+  content="default-src 'none'; style-src 'unsafe-inline' ${
+    webview.cspSource
+  }; img-src ${webview.cspSource} data:; script-src 'nonce-${nonce}';">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Error</title>
+<style>
+  :root{
+    --bg:${isDark ? '#0d0f14' : '#f7f8fb'};
+    --card:${isDark ? '#151922' : '#ffffff'};
+    --muted:${isDark ? '#9aa3b2' : '#5b6573'};
+    --text:${isDark ? '#e7ecf3' : '#1c2430'};
+    --accent:${isDark ? '#ff5c7a' : '#c5162c'};
+    --accent-2:${isDark ? '#6ae3ff' : '#006a80'};
+    --border:${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'};
+    --code:${isDark ? '#0b0d12' : '#f2f4f8'};
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;}
+  .wrap{padding:24px 28px 40px;display:flex;flex-direction:column;gap:20px;}
+  .hero{
+    position:relative;
+    padding:24px;
+    background:radial-gradient(1200px 500px at 10% -20%, rgba(255,92,122,.25), transparent),
+               radial-gradient(900px 500px at 110% -10%, rgba(106,227,255,.18), transparent),
+               var(--card);
+    border:1px solid var(--border); border-radius:16px; overflow:hidden;
+  }
+  .header{
+    display:flex; gap:20px; align-items:center; position:relative;
+  }
+  .icon{
+    width:90px; height:90px; flex:0 0 90px;
+  }
+  .glitch{
+    font-weight:800; font-size:24px; letter-spacing:.5px;
+    position:relative; display:inline-block; text-transform:uppercase;
+  }
+  .glitch::before, .glitch::after{
+    content:attr(data-text); position:absolute; left:0; top:0; clip-path:inset(0 0 0 0);
+    animation:glitch 3s infinite ease-in-out alternate-reverse;
+    opacity:.85;
+  }
+  .glitch::before{ transform:translate(1px, 0); color:var(--accent); mix-blend-mode:screen; }
+  .glitch::after{ transform:translate(-1px, 0); color:var(--accent-2); mix-blend-mode:screen; }
+  @keyframes glitch{
+    0%{ clip-path:inset(0 0 90% 0); }
+    10%{ clip-path:inset(10% 0 70% 0); }
+    20%{ clip-path:inset(40% 0 40% 0); }
+    30%{ clip-path:inset(80% 0 10% 0); }
+    40%{ clip-path:inset(50% 0 30% 0); }
+    50%{ clip-path:inset(0 0 85% 0); }
+    60%{ clip-path:inset(15% 0 60% 0); }
+    70%{ clip-path:inset(70% 0 25% 0); }
+    80%{ clip-path:inset(35% 0 35% 0); }
+    90%{ clip-path:inset(5% 0 75% 0); }
+    100%{ clip-path:inset(0 0 90% 0); }
+  }
+
+  .title{ margin:2px 0 6px; font-size:18px; font-weight:700; }
+  .message{ margin:0; color:var(--muted); }
+  .row{ display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
+  .btn{
+    border:1px solid var(--border); background:transparent; color:var(--text);
+    padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+  }
+  .btn:hover{ border-color:var(--accent); }
+  .danger{ color:var(--bg); background:var(--accent); border-color:transparent; }
+  .danger:hover{ filter:brightness(1.05); }
+
+  .stack{
+    background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden;
+  }
+  .stack .head{
+    display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border);
+  }
+  .stack pre{
+    margin:0; padding:14px; background:var(--code); overflow:auto; max-height:50vh; line-height:1.4; border-top:1px solid var(--border);
+  }
+  code{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12.5px; }
+  .frame{ padding:8px 0; border-bottom:1px dashed var(--border); }
+  .frame:last-child{ border-bottom:0; }
+  .fn{ font-weight:700; }
+  .file{ color:var(--muted); }
+  .line{ background:rgba(255,92,122,.15); padding:0 4px; border-radius:4px; }
+
+  .legend{
+    display:flex; gap:10px; align-items:center; color:var(--muted); font-size:12px; padding:0 2px;
+  }
+  .dot{ width:8px; height:8px; border-radius:999px; background:var(--accent); box-shadow:0 0 10px var(--accent); }
+  .svgWrap{ position:absolute; right:-10px; bottom:-10px; width:180px; opacity:.25; pointer-events:none }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="header">
+        <svg class="icon" viewBox="0 0 120 120" aria-hidden="true">
+          <!-- Broken robot head -->
+          <g fill="none" stroke="${isDark ? '#e7ecf3' : '#1c2430'}" stroke-width="3">
+            <rect x="20" y="26" width="80" height="70" rx="10" />
+            <circle cx="45" cy="55" r="8" />
+            <path d="M76 63 l12 -8" />
+            <circle cx="75" cy="55" r="8" />
+            <path d="M40 78 q20 14 40 0" />
+            <path d="M60 20 v-12" />
+            <circle cx="60" cy="8" r="4" />
+            <path d="M20 61 h-10" />
+            <path d="M110 61 h10" />
+          </g>
+          <g fill="${isDark ? '#ff5c7a' : '#c5162c'}">
+            <rect x="55" y="35" width="10" height="18">
+              <animate attributeName="height" dur="1.2s" values="18;6;18" repeatCount="indefinite"/>
+            </rect>
+          </g>
+        </svg>
+
+        <div>
+          <div class="glitch" data-text="System Melt">System Melt</div>
+          <div class="title">${esc(data.title)}</div>
+          <p class="message">${esc(data.message)}</p>
+          <div class="row">
+            <button class="btn danger" id="copyErr">Copy Message</button>
+            <button class="btn" id="copyStack">Copy Stack</button>
+            <button class="btn" id="collapse">Collapse/Expand Frames</button>
+          </div>
+          <div class="legend"><span class="dot"></span> An incident has occurred. Here’s the blast radius.</div>
+        </div>
+
+        <svg class="svgWrap" viewBox="0 0 200 200">
+          <!-- Abstract shards -->
+          <polygon points="10,180 80,50 140,190" fill="${isDark ? '#6ae3ff' : '#006a80'}" opacity="0.35">
+            <animate attributeName="opacity" values="0.2;0.45;0.2" dur="6s" repeatCount="indefinite"/>
+          </polygon>
+          <polygon points="50,160 120,20 190,160" fill="${isDark ? '#ff5c7a' : '#c5162c'}" opacity="0.25">
+            <animate attributeName="opacity" values="0.15;0.35;0.15" dur="5s" repeatCount="indefinite"/>
+          </polygon>
+        </svg>
+      </div>
+    </section>
+
+    <section class="stack">
+      <div class="head">
+        <strong>Stack trace</strong>
+        <span id="count" class="message">–</span>
+      </div>
+      <pre id="stack"><code></code></pre>
+    </section>
+  </div>
+
+<script nonce="${nonce}">
+(function(){
+  const vscode = acquireVsCodeApi();
+
+  const RAW_STACK = ${JSON.stringify(data.stack ?? '')};
+  const RAW_MESSAGE = ${JSON.stringify(data.message ?? '')};
+
+  // Render a formatted stack: highlight file:line:col, separate frames
+  const codeEl = document.querySelector('#stack code');
+  const countEl = document.getElementById('count');
+  const collapseBtn = document.getElementById('collapse');
+  const copyErrBtn = document.getElementById('copyErr');
+  const copyStackBtn = document.getElementById('copyStack');
+
+  function escapeHtml(s){ return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+  function parseFrames(stack){
+    // Handles Node/JS style stacks; still looks decent for others.
+    const lines = (stack || '').split(/\\r?\\n/).filter(Boolean);
+    const frames = [];
+    const re = /^\\s*at\\s+(.*?)\\s+\$begin:math:text$(.*?):(\\\\d+):(\\\\d+)\\$end:math:text$\\s*$|^\\s*at\\s+(.*?):(\\d+):(\\d+)\\s*$/;
+    for (const line of lines) {
+      const m = line.match(re);
+      if (m) {
+        const fn = m[1] || '<anonymous>';
+        const file = m[2] || m[5] || '';
+        const ln = m[3] || m[6] || '';
+        const col = m[4] || m[7] || '';
+        frames.push({ fn, file, ln, col, raw: line });
+      } else {
+        frames.push({ fn: '', file: '', ln: '', col: '', raw: line });
+      }
+    }
+    return frames;
+  }
+
+  const frames = parseFrames(RAW_STACK);
+  countEl.textContent = frames.length ? frames.length + ' frame' + (frames.length>1?'s':'') : 'no frames';
+
+  let collapsed = false;
+
+  function render(){
+    if (!frames.length) {
+      codeEl.innerHTML = escapeHtml(RAW_STACK || '(no stack trace provided)');
+      return;
+    }
+    const html = frames.map(f => {
+      if (!f.file) {
+        return '<div class="frame">'+escapeHtml(f.raw)+'</div>';
+      }
+      const fileSpan = '<span class="file">'+escapeHtml(f.file)+'</span>';
+      const posSpan = '<span class="line">:'+escapeHtml(String(f.ln))+(f.col?':'+escapeHtml(String(f.col)):'')+'</span>';
+      const fnSpan = '<span class="fn">'+escapeHtml(f.fn)+'</span>';
+      const detail = fileSpan + posSpan;
+      return '<div class="frame">'+ (collapsed ? detail : (fnSpan + ' @ ' + detail)) + '</div>';
+    }).join('');
+    codeEl.innerHTML = html;
+  }
+
+  render();
+
+  collapseBtn.addEventListener('click', () => { collapsed = !collapsed; render(); });
+
+  copyErrBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(RAW_MESSAGE || '');
+      vscode.postMessage({ type: 'copied' });
+    } catch {}
+  });
+  copyStackBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(RAW_STACK || '');
+      vscode.postMessage({ type: 'copied' });
+    } catch {}
+  });
+})();
+</script>
+</body>
+</html>`;
+}
